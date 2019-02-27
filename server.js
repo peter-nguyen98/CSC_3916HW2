@@ -15,6 +15,30 @@ app.use(passport.initialize());
 
 var router = express.Router();
 
+function notSupported (req, res, route)
+{
+	res.json({success: false, msg: req.method + ' ... HTTP METHOD NOT SUPPORTED'});
+}
+
+function baseURL (req, res)
+{
+	res.json({success: false, msg: req.method + ' ... NOT SUPPORTED by this URL'});
+}
+
+function movieReturn(req, res, type)
+{
+	res.status(200);
+	res.set(req.headers);
+	res.query = req.query;
+	res.json(
+	{
+		message:  type,
+		headers: req.headers,
+		query: res.query,
+		env: process.env.UNIQUE_KEY
+	}).send();
+}
+
 function getJSONObject(req) {
     var json = {
         headers : "No Headers",
@@ -57,9 +81,10 @@ router.route('/postjwt')
         }
     );
 
-router.post('/signup', function(req, res) {
+router.post('/signup', function(req, res) 
+{
     if (!req.body.username || !req.body.password) {
-        res.json({success: false, msg: 'Please pass username and password.'});
+        res.json({success: false, msg: 'Please pass the username and password.'});
     } else {
         var newUser = {
             username: req.body.username,
@@ -67,14 +92,29 @@ router.post('/signup', function(req, res) {
         };
         // save the user
         db.save(newUser); //no duplicate checking
-        res.json({success: true, msg: 'Successful created new user.'});
+        res.json({success: true, msg: 'Successfully created a new user.'});
     }
 });
 
-router.post('/signin', function(req, res) {
 
-        var user = db.findOne(req.body.username);
+router.get('/signup', function(req, res) {notSupported(req, res, "/signup");} );
+router.put('/signup', function(req, res) {notSupported(req, res, "/signup");} );
+router.patch('/signup', function(req, res) {notSupported(req, res, "/signup");} );
+router.delete('/signup', function(req, res) {notSupported(req, res, "/signup");} );
 
+
+router.post('/signin', function(req, res) 
+{
+		var user;
+		if (req.body.username)
+		{
+			user = db.findOne(req.body.username);
+		}
+		else 
+		{
+			user = null;
+		}
+		
         if (!user) {
             res.status(401).send({success: false, msg: 'Authentication failed. User not found.'});
         }
@@ -91,7 +131,22 @@ router.post('/signin', function(req, res) {
         };
 });
 
+
+router.get('/signin', function(req, res) {notSupported(req, res, "/signin");} );
+router.put('/signin', function(req, res) {notSupported(req, res, "/signin");} );
+router.patch('/signin', function(req, res) {notSupported(req, res, "/signin");} );
+router.delete('/signin', function(req, res) {notSupported(req, res, "/signin");} );
+
+
+router.get('/movies', function(req,res){ movieReturn(req, res, "GET Movies"); } );
+router.post('/movies', function(req,res){ movieReturn(req, res, "SAVED Movie"); } );
+router.put('/movies', authJwtController.isAuthenticated, function(req,res){ movieReturn(req, res, "Movie UPDATED"); } );
+router.delete('/movies', authController.isAuthenticated, function(req,res){ movieReturn(req, res, "Movie DELETED"); } );
+router.all('/movies', function(req, res) {notSupported(req, res, "/movies");} );
+
+
 app.use('/', router);
+app.use(function(req, res) {baseURL(req, res,) ; } );
 app.listen(process.env.PORT || 8080);
 
 module.exports = app; // for testing
